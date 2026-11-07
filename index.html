@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Топ сложных уровней</title>
+
+<!--
+  ============================================================
+  КАК БЫСТРО ПРОДОЛЖИТЬ СПИСОК (читай это, когда меня нет рядом)
+  ============================================================
+  1. Найди ниже блок <script> и в нём массив LEVELS.
+  2. Каждый уровень — одна строка такого вида:
+        { id: "shiver", name: "Shiver", difficulty: "easy demon" },
+  3. Чтобы ДОБАВИТЬ уровень — скопируй любую строку и вставь в конец
+     списка (перед закрывающей скобкой ]). Место (номер) считается
+     само по порядку строк: первая строка = 1 место, и так далее.
+  4. Чтобы ПОМЕНЯТЬ МЕСТА — просто перетащи строки выше/ниже.
+  5. ВАЖНО: id должен быть уникальным, на английском, без пробелов
+     и никогда не меняться — по нему сохраняются галочки.
+     (Если поменять id, галочка у этого уровня сбросится.)
+  6. Не забудь запятую в конце каждой строки.
+  7. Сложность — любой текст, например:
+        "easy demon", "medium demon", "hard demon",
+        "insane demon", "extreme demon"
+  8. Цвета меняются в самом верху CSS, в блоке :root (--accent).
+  9. После правок: загрузи файл на GitHub и подожди ~1 минуту,
+     пока обновится GitHub Pages.
+-->
+
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --panel: #171717;
+    --line: #262626;
+    --text: #f2f2f2;
+    --muted: #8a8a8a;
+    --accent: #ff7a00;       /* главный оранжевый */
+    --accent-dim: #3a2000;   /* тёмный оранжевый для фона пройденных */
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    line-height: 1.4;
+    padding: 0 16px 64px;
+  }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    padding: 56px 0 28px;
+    border-bottom: 2px solid var(--accent);
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .sub {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .sub b { color: var(--accent); font-weight: 700; }
+
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .item {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    transition: background .2s, border-color .2s;
+  }
+
+  .item.done {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+  }
+
+  .place {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .name { font-size: 18px; font-weight: 600; }
+
+  .diff {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    max-width: 150px;
+  }
+
+  .check span {
+    font-size: 10.5px;
+    line-height: 1.25;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .check input {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    border: 2px solid var(--muted);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: border-color .15s, background .15s;
+  }
+
+  .check input:hover { border-color: var(--accent); }
+
+  .check input:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .check input:checked::after {
+    content: "";
+    width: 6px;
+    height: 12px;
+    border: solid #0e0e0e;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+
+  .check input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 520px) {
+    .item { grid-template-columns: 40px 1fr auto; padding: 12px; gap: 8px; }
+    .place { font-size: 17px; }
+    .name { font-size: 16px; }
+    .check { max-width: 110px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+
+<body>
+<main>
+  <header>
+    <h1>Самые сложные уровни</h1>
+    <p class="sub">Пройдены мной или другом. Отмечено: <b id="counter">0 из 0</b></p>
+  </header>
+
+  <ol id="list"></ol>
+</main>
+
+<script>
+  /* ============================================================
+     СПИСОК УРОВНЕЙ — РЕДАКТИРУЙ ТОЛЬКО ЭТОТ БЛОК
+     Порядок строк = места (1, 2, 3 ...).
+     Формат строки: { id: "уникальный-id", name: "Название", difficulty: "Сложность" },
+     ============================================================ */
+  const LEVELS = [
+    { id: "b",                name: "B",                difficulty: "medium demon" },
+    { id: "is",               name: "is",               difficulty: "easy demon" },
+    { id: "minecraft-stories",name: "Minecraft Stories",difficulty: "medium demon" },
+    { id: "shiver",           name: "Shiver",           difficulty: "easy demon" },
+    { id: "platium-adventure",name: "Platium Adventure",difficulty: "easy demon" },
+    { id: "the-nightmare",    name: "The Nightmare",    difficulty: "easy demon" },
+    { id: "demon-mixed",      name: "Demon Mixed",      difficulty: "easy demon" },
+    // ← сюда копируй новые строки
+  ];
+
+  /* Ключ сохранения. Если захочешь сбросить ВСЕ галочки у всех — измени "v1" на "v2". */
+  const STORAGE_KEY = "demon-list-checked-v1";
+
+  /* Чтение/запись галочек в localStorage (хранится в браузере, переживает обновление страницы). */
+  function loadChecked() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveChecked(state) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      /* хранилище недоступно (например, приватный режим) — просто работаем без сохранения */
+    }
+  }
+
+  const checked = loadChecked();
+  const listEl = document.getElementById("list");
+  const counterEl = document.getElementById("counter");
+
+  function updateCounter() {
+    const done = LEVELS.filter(function (l) { return checked[l.id]; }).length;
+    counterEl.textContent = done + " из " + LEVELS.length;
+  }
+
+  LEVELS.forEach(function (level, index) {
+    const li = document.createElement("li");
+    li.className = "item" + (checked[level.id] ? " done" : "");
+
+    const place = document.createElement("div");
+    place.className = "place";
+    place.textContent = "#" + (index + 1);
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = level.name;
+    const diff = document.createElement("span");
+    diff.className = "diff";
+    diff.textContent = level.difficulty;
+    name.appendChild(diff);
+
+    const label = document.createElement("label");
+    label.className = "check";
+    const hint = document.createElement("span");
+    hint.textContent = "Отметь, чтобы не забыть, что уровень уже пройден";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = !!checked[level.id];
+    box.addEventListener("change", function () {
+      if (box.checked) { checked[level.id] = true; } else { delete checked[level.id]; }
+      li.classList.toggle("done", box.checked);
+      saveChecked(checked);   // сохраняем сразу при каждом клике
+      updateCounter();
+    });
+    label.appendChild(hint);
+    label.appendChild(box);
+
+    li.appendChild(place);
+    li.appendChild(name);
+    li.appendChild(label);
+    listEl.appendChild(li);
+  });
+
+  updateCounter();
+</script>
+</body>
+</html>
